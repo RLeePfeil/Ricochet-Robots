@@ -1,0 +1,101 @@
+body {
+	padding-top: 50px;
+	padding-bottom: 50px;
+}
+
+#container {
+	-webkit-perspective: 1200;
+	-webkit-transform-style: preserve-3d;
+}
+
+#board {
+	max-width: 720px;
+	width: 100%;
+	margin: 0 auto;
+	border: 0;
+	-webkit-transform: rotateX(45deg) translateZ(-100px) translateY(-100px);
+}
+
+#controls {
+	max-width: 720px;
+	width: 100%;
+	padding-bottom: 26%;
+	margin: 0 auto;
+	border: 0;
+	-webkit-transform: rotateX(45deg);
+}
+
+#joystick {
+	width: 20%;
+	position: absolute;
+	left: 40%;
+	background-color: #EEE;
+	border-radius: 100%;
+}
+
+#joystick-head {
+	background: #CCC url(../images/joystick.png) center center no-repeat;
+	background-size: 100% auto;
+	padding-top: 92%;
+	width: 90%;
+	margin: -12% auto 20%;
+	border-radius: 100%;
+	position: relative;
+}
+
+.color-button {
+	position: absolute;
+	width: 15%;
+	border: 4px solid #CCC;
+	border-radius: 100%;
+	
+	.color-button-top {
+		padding-top: 100%;
+		position: relative;
+		top: -10px;
+		border-radius: 100%;
+		-webkit-transition: all .25s ease-out 0s;
+		
+		&:hover, &:active, &.active {
+			top: -2px;
+		}
+	}
+	
+	&.color-button-red {
+		background-color: #a20733;
+		left: 18%;
+		top: 10%;
+		
+		.color-button-top {background-color: #f20a4c;}
+	}
+	&.color-button-blue {
+		background-color: #053181;
+		left: 30%;
+		top: 67%;
+		
+		.color-button-top {background-color: #0a5cf2;}
+	}
+	&.color-button-yellow {
+		background-color: #a29507;
+		left: 53%;
+		top: 67%;
+		
+		.color-button-top {background-color: #f2df0a;}
+	}
+	&.color-button-green {
+		background-color: #398706;
+		left: 65%;
+		top: 10%;
+		
+		.color-button-top {background-color: #67f20a;}
+	}
+}
+
+.square {
+	background-color: #e0e2f9;
+	box-shadow: inset 0 0 0 1px #FFF;
+}
+
+.square.dark {
+	background-color: #d7d8f0;
+}
