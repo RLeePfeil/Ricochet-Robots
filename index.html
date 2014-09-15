@@ -10,13 +10,18 @@
 </head>
 <body class="">
 	<div id="container">
-		<table id="board" cellpadding="0" cellspacing="0"></table>
+		<div id="board-container">
+			<div id="num-moves">0</div>
+			<table id="board" cellpadding="0" cellspacing="0"></table>
+		</div>
 		<div id="controls">
 			<div id="joystick"><div id="joystick-head"></div></div>
-			<div class="color-button color-button-red"><div class="color-button-top"></div></div>
-			<div class="color-button color-button-blue"><div class="color-button-top"></div></div>
-			<div class="color-button color-button-yellow"><div class="color-button-top"></div></div>
-			<div class="color-button color-button-green"><div class="color-button-top"></div></div>
+			<div id="btn-move-back"></div>
+			<div class="color-button color-button-red" data-color="red"></div>
+			<div class="color-button color-button-blue" data-color="blue"></div>
+			<div class="color-button color-button-yellow" data-color="yellow"></div>
+			<div class="color-button color-button-green" data-color="green"></div>
+			<div id="btn-reset"></div>
 		</div>
 	</div>
 	

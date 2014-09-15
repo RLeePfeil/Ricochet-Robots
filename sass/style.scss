@@ -1,3 +1,11 @@
+$r: #f20a4c;
+$b: #0a5cf2;
+$y: #f2df0a;
+$g: #67f20a;
+
+$colors: "red" "blue" "yellow" "green";
+$shapes: "star" "circle" "moon" "hexagon";
+
 body {
 	padding-top: 50px;
 	padding-bottom: 50px;
@@ -8,12 +16,77 @@ body {
 	-webkit-transform-style: preserve-3d;
 }
 
-#board {
+#num-moves {
+	position: absolute;
+	top: -100px;
+	width: 20%;
+	left: 40%;
+	text-align: center;
+	font-size: 130%;
+	font-weight: 300;
+	color: #666;
+	transform: rotateX(-90deg);
+	background-color: #F3F3F3;
+	padding: 10px;
+	font-family: "Open Sans", sans-serif;
+	box-shadow: 0 -1px 0 3px #AAA;
+}
+
+#board-container {
 	max-width: 720px;
-	width: 100%;
+	width: 90%;
+	position: relative;
 	margin: 0 auto;
+	-webkit-transform: rotateX(45deg) translateZ(0) translateY(0);
+	-webkit-transform-style: preserve-3d;
+}
+
+#board {
+	width: 100%;
 	border: 0;
-	-webkit-transform: rotateX(45deg) translateZ(-100px) translateY(-100px);
+	box-shadow: 0 0 0 4px #666;
+}
+
+.robot {
+	position: absolute;
+	width: 6.25%;
+	padding-bottom: 6.25%;
+	border-radius: 100%;
+	background-color: #AAA;
+	-webkit-transform: scale(.8) translateZ(1px);
+	box-shadow: 0 5px 8px rgba(0, 0, 0, 0.35), inset 0 -3px 3px rgba(0, 0, 0, .35);
+	-webkit-transition: all .5s ease-out 0s;
+	-webkit-transform-style: preserve-3d;
+	
+	&::after {
+		content: "";
+		width: 60%;
+		padding-bottom: 60%;
+		position: relative;
+		background-color: #AAA;
+		box-shadow: 0 6px 6px rgba(0, 0, 0, 0.15), inset 0 -3px 3px rgba(0, 0, 0, 0.25);
+		display: block;
+		border-radius: 100%;
+		margin: 0 auto -100%;
+		transform: translateZ(8px);
+	}
+	
+	&.red {
+		background-color: $r;
+		&::after {background-color: $r;}
+	}
+	&.blue {
+		background-color: $b;
+		&::after {background-color: $b;}
+	}
+	&.yellow {
+		background-color: $y;
+		&::after {background-color: $y;}
+	}
+	&.green {
+		background-color: $g;
+		&::after {background-color: $g;}
+	}
 }
 
 #controls {
@@ -22,7 +95,8 @@ body {
 	padding-bottom: 26%;
 	margin: 0 auto;
 	border: 0;
-	-webkit-transform: rotateX(45deg);
+	position: relative;
+	//-webkit-transform: rotateX(45deg);
 }
 
 #joystick {
@@ -31,16 +105,24 @@ body {
 	left: 40%;
 	background-color: #EEE;
 	border-radius: 100%;
+	z-index: 4;
 }
 
 #joystick-head {
 	background: #CCC url(../images/joystick.png) center center no-repeat;
 	background-size: 100% auto;
-	padding-top: 92%;
+	padding-top: 90%;
 	width: 90%;
 	margin: -12% auto 20%;
 	border-radius: 100%;
 	position: relative;
+	-webkit-transition: all .2s ease-out 0s;
+}
+
+body.joystick-active {
+	#joystick-head {
+		-webkit-transition: none;
+	}
 }
 
 .color-button {
@@ -48,54 +130,173 @@ body {
 	width: 15%;
 	border: 4px solid #CCC;
 	border-radius: 100%;
+	cursor: pointer;
 	
-	.color-button-top {
+	&::after {
+		content: "";
+		display: block;
 		padding-top: 100%;
 		position: relative;
 		top: -10px;
 		border-radius: 100%;
-		-webkit-transition: all .25s ease-out 0s;
-		
-		&:hover, &:active, &.active {
+		-webkit-transition: all .2s ease-out 0s;
+	}
+	
+	&:focus, &:active, &.active {
+		&::after {
 			top: -2px;
 		}
 	}
 	
 	&.color-button-red {
-		background-color: #a20733;
+		background-color: darken($r, 20%);
 		left: 18%;
 		top: 10%;
+		z-index: 5;
 		
-		.color-button-top {background-color: #f20a4c;}
+		&::after {background-color: $r;}
 	}
 	&.color-button-blue {
-		background-color: #053181;
+		background-color: darken($b, 20%);
 		left: 30%;
 		top: 67%;
+		z-index: 6;
 		
-		.color-button-top {background-color: #0a5cf2;}
+		&::after {background-color: $b;}
 	}
 	&.color-button-yellow {
-		background-color: #a29507;
+		background-color: darken($y, 20%);
 		left: 53%;
 		top: 67%;
+		z-index: 6;
 		
-		.color-button-top {background-color: #f2df0a;}
+		&::after {background-color: $y;}
 	}
 	&.color-button-green {
-		background-color: #398706;
+		background-color: darken($g, 20%);
 		left: 65%;
 		top: 10%;
+		z-index: 5;
 		
-		.color-button-top {background-color: #67f20a;}
+		&::after {background-color: $g;}
+	}
+}
+
+#btn-move-back, #btn-reset {
+	position: absolute;
+	top: 40%;
+	width: 15%;
+	padding-bottom: 15%;
+	border-radius: 100%;
+	background-color: #EEE;
+	color: #999;
+	cursor: pointer;
+	
+	&::after {
+		position: absolute;
+		display: block;
+		text-align: center;
+		width: 100%;
+		padding-top: 20%;
+		font-size: 200%;
+		font-family: "Open Sans", sans-serif;
+	}
+}
+
+#btn-move-back {
+	left: 2%;
+	
+	&::after {
+		content: "<";
+	}
+}
+
+#btn-reset {
+	right: 2%;
+	
+	&::after {
+		content: "x";
 	}
 }
 
 .square {
 	background-color: #e0e2f9;
+	background-repeat: no-repeat;
+	background-size: 80% 80%;
+	background-position: center center;
 	box-shadow: inset 0 0 0 1px #FFF;
+	position: relative;
+	
+	&.dark {
+		background-color: #d7d8f0;
+	}
+	
+	&.tl {
+		box-shadow: inset 0 0 0 1px #FFF, inset 2px 2px 0 1px #333;
+	}
+	&.bl {
+		box-shadow: inset 0 0 0 1px #FFF, inset 2px -2px 0 1px #333;
+	}
+	&.tr {
+		box-shadow: inset 0 0 0 1px #FFF, inset -2px 2px 0 1px #333;
+	}
+	&.br {
+		box-shadow: inset 0 0 0 1px #FFF, inset -2px -2px 0 1px #333;
+	}
+	
+	&.t {
+		box-shadow: inset 0 0 0 1px #FFF, inset 0 2px 0 1px #333;
+	}
+	&.l {
+		box-shadow: inset 0 0 0 1px #FFF, inset 2px 0 0 1px #333;
+	}
+	&.b {
+		box-shadow: inset 0 0 0 1px #FFF, inset 0 -2px 0 1px #333;
+	}
+	&.r {
+		box-shadow: inset 0 0 0 1px #FFF, inset -2px 0 0 1px #333;
+	}
+	
+	&.xx {
+		box-shadow: none;
+		background-color: #333;
+	}
+	
+	@each $color in $colors {
+		@each $shape in $shapes {
+			&.#{$color}-#{$shape}::after {
+				position: absolute;
+				content: "";
+				display: block;
+				width: 80%;
+				top: 10%;
+				left: 10%;
+				padding-bottom: 80%;
+				border-radius: 100%;
+				background-size: 100% auto;
+				opacity: .2;
+				
+				@if $color == 'red' {
+				  background-color: darken($r, 20%);
+				} @elseif $color == 'blue' {
+				  background-color: darken($b, 20%);
+				} @elseif $color == 'yellow' {
+				  background-color: darken($y, 20%);
+				} @elseif $color == 'green' {
+				  background-color: darken($g, 20%);
+				}
+				background-image: url("../images/#{$shape}.png")
+			}
+		}
+	}
 }
 
-.square.dark {
-	background-color: #d7d8f0;
+@media screen and (max-width: 720px) {
+	#board {
+		box-shadow: 0 0 0 2px #666;
+	}
+	
+	.robot::after {
+		transform: translateZ(4px);
+	}
 }
