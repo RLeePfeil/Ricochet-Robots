@@ -30,6 +30,8 @@ body {
 	padding: 10px;
 	font-family: "Open Sans", sans-serif;
 	box-shadow: 0 -1px 0 3px #AAA;
+	transform-style: preserve-3d;
+	-webkit-transform-style: preserve-3d;
 }
 
 #board-container {
@@ -287,6 +289,12 @@ body.joystick-active {
 				}
 				background-image: url("../images/#{$shape}.png")
 			}
+		}
+	}
+	
+	&.active {
+		&::after {
+			opacity: 1;
 		}
 	}
 }

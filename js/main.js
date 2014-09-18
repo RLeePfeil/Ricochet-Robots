@@ -188,6 +188,7 @@ var Game = {
 		listenKeys = [37,38,39,40, 49,50,51,52] // Listen for left, up, right, down, and 1, 2, 3, 4
 		if ($.inArray(e.keyCode, listenKeys) >= 0) {
 			e.preventDefault();
+			console.log('key hit: '+e.keyCode);
 			
 			switch (e.keyCode) {
 				case 37:
@@ -203,16 +204,16 @@ var Game = {
 					Game.currentRobot().move("S");
 					break;
 				case 49:
-					Game.controls.red.trigger("click");
+					Game.controls.red.trigger("mouseup");
 					break;
 				case 50:
-					Game.controls.blue.trigger("click");
+					Game.controls.blue.trigger("mouseup");
 					break;
 				case 51:
-					Game.controls.yellow.trigger("click");
+					Game.controls.yellow.trigger("mouseup");
 					break;
 				case 52:
-					Game.controls.green.trigger("click");
+					Game.controls.green.trigger("mouseup");
 					break;
 			}
 		} else {
@@ -331,25 +332,42 @@ var Game = {
 }
 
 function Wall(options){
+	this.type = "Wall";
 	this.myX;
 	this.myY;
 	this.walls = [0,0,0,0];
 	this.target;
 	
+	for (option in options) {
+		this[option] = options[option];
+	}
+	
 	this.me = this.addMe();
 }
 
 Wall.prototype.addMe = function() {
-	
+	return Game.$board.find('tr:eq('+this.myY+')').find('td:eq('+this.myX+')');
 }
 
 function Target(options){
+	this.type = "Target";
 	this.myX;
 	this.myY;
 	this.target;
+	
+	for (option in options) {
+		this[option] = options[option];
+	}
+	
+	this.me = this.addMe();
+}
+
+Target.prototype.addMe = function() {
+	return Game.$board.find('tr:eq('+this.myY+')').find('td:eq('+this.myX+')');
 }
 
 function Robot(options){
+	this.type = "Robot";
 	this.myX;
 	this.myY;
 	this.color;
@@ -391,57 +409,96 @@ Robot.prototype.move = function(direction) {
 Robot.prototype.moveCheck = function(direction) {
 	// Find my ending location given a direction N, W, E, S
 	// If I can't move in that direction, return false
-	switch(direction){
-		case "N":
-			for (moveY=this.myY; moveY > 0; moveY--) {
-				if (false) { // have we hit something?
-					break;
+	
+	console.log("moveCheck: "+direction);
+	
+	moveObj = {
+		moveY: this.myY,
+		moveX: this.myX,
+		currentSquare: function(){ return Game.board[moveObj.moveY][moveObj.moveX] }
+	}
+	
+	if (direction == "N") {
+		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY-1][moveObj.moveX] } catch(e) { console.log('nextSquare broke: '+(moveObj.moveY-1)+' '+moveObj.moveX); return false; } }
+		moveObj.loopFunc = function(){ console.log("loop func called"); moveObj.moveY--; };
+		moveObj.loopStop = function(){ console.log("loop stop called"); return moveObj.moveY > 0 };
+		moveObj.nearWall = 0;
+		moveObj.farWall  = 2;
+	} else if (direction == "S") {
+		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY+1][moveObj.moveX] } catch(e) { console.log('nextSquare broke: '+(moveObj.moveY+1)+' '+moveObj.moveX); return false; } }
+		moveObj.loopFunc = function(){ console.log("loop func called"); moveObj.moveY++; };
+		moveObj.loopStop = function(){ console.log("loop stop called"); return moveObj.moveY < Game.board.length-1 };
+		moveObj.nearWall = 2;
+		moveObj.farWall  = 0;
+	} else if (direction == "E") {
+		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY][moveObj.moveX+1] } catch(e) { console.log('nextSquare broke: '+(moveObj.moveY)+' '+(moveObj.moveX+1)); return false; } }
+		moveObj.loopFunc = function(){ console.log("loop func called"); moveObj.moveX++; };
+		moveObj.loopStop = function(){ console.log("loop stop called"); return moveObj.moveX < Game.board[0].length-1 };
+		moveObj.nearWall = 1;
+		moveObj.farWall  = 3;
+	} else if (direction == "W") {
+		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY][moveObj.moveX-1] } catch(e) { console.log('nextSquare broke: '+(moveObj.moveY)+' '+(moveObj.moveX-1)); return false; } }
+		moveObj.loopFunc = function(){ console.log("loop func called"); moveObj.moveX--; };
+		moveObj.loopStop = function(){ console.log("loop stop called"); return moveObj.moveX > 0 };
+		moveObj.nearWall = 3;
+		moveObj.farWall  = 1;
+	}
+	
+	// Test that we're not moving into the board edge
+	var LOOPKILL = 0;
+	var breakHit = false;
+	whileloop:
+	while (moveObj.loopStop() && !breakHit) {
+		// If we're on a square that has walls, test to see if one of them is moveObj.nearWall
+		for (i=0; i<moveObj.currentSquare().length; i++) {
+			if (moveObj.currentSquare()[i].type == "Wall") {
+				console.log('currently on a wall space');
+				if (moveObj.currentSquare()[i].walls[moveObj.nearWall] == 1) {
+					// will hit near wall - go no further
+					console.log('break hit');
+					breakHit = true;
+					break whileloop;
 				}
 			}
-			if (moveY == this.myY) {
-				return false;
-			} else {
-				return {x:this.myX, y:moveY}
-			}
-			break;
-		case "S":
-			for (moveY=this.myY; moveY < Game.board.length-1; moveY++) {
-				if (false) { // have we hit something?
-					break;
+		}
+		
+		if (moveObj.nextSquare()) {
+			for (i=0; i<moveObj.nextSquare().length; i++) {
+				// If we're moving into a square with walls, test to see if one of them is moveObj.farWall
+				if (moveObj.nextSquare()[i].type == "Wall") {
+					console.log('next spot is a wall space');
+					if (moveObj.nextSquare()[i].walls[moveObj.farWall] == 1) {
+						// will hit far wall - go no further
+						console.log('break hit');
+						breakHit = true;
+						break whileloop;
+					}
+				}
+				
+				// If we're moving into a square with a robot, stop the loop, we can move no further
+				if (moveObj.nextSquare()[i].type == "Robot") {
+					// will hit robot - go no further
+					console.log('break hit');
+					breakHit = true;
+					break whileloop;
 				}
 			}
-			if (moveY == this.myY) {
-				return false;
-			} else {
-				return {x:this.myX, y:moveY}
-			}
+		}
+		
+		if (LOOPKILL > 20) {
+			console.log("loop killed");
 			break;
-		case "E":
-			for (moveX=this.myX; moveX < Game.board[0].length-1; moveX++) {
-				if (false) { // have we hit something?
-					break;
-				}
-			}
-			if (moveX == this.myX) {
-				return false;
-			} else {
-				return {x:moveX, y:this.myY}
-			}
-			break;
-		case "W":
-			for (moveX=this.myX; moveX > 0; moveX--) {
-				if (false) { // have we hit something?
-					break;
-				}
-			}
-			if (moveX == this.myX) {
-				return false;
-			} else {
-				return {x:moveX, y:this.myY}
-			}
-			break;
-		default:
-			break;
+		}
+		
+		moveObj.loopFunc();
+		console.log(moveObj.moveX+", "+moveObj.moveY);
+		LOOPKILL++;
+	}
+	
+	if (moveObj.moveY == this.myY && moveObj.moveX == this.myX) {
+		return false;
+	} else {
+		return {x:moveObj.moveX, y:moveObj.moveY}
 	}
 }
 
