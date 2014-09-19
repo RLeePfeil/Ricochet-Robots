@@ -1,13 +1,18 @@
 /*
  * Game: Ricochet Robots
- *
+ * 
+ * TODO:
+ *   Restart functionality
+ *   Game start screen
+ *   Current target selection
+ * 
  * Golossary:
  *   Boards -
  *     Each board is set up to be the top-left quadrant of the board
  *     The boards need to be transposed / rotated when combined to make the full game board
  *   Robots -
  *     Robots come in 4 colors (5 if silver is used) and are the pieces that
- *     the player moves around the board
+ *     the player moves around the board to reach the current target
  *   Walls -
  *     Stop a piece from moving through. [north, south, east, west]
  *     [0, 1, 1, 0] would look like _| and a 0 means no walls.
@@ -46,9 +51,10 @@ var Game = {
 		yellow: $('.color-button-yellow'),
 		green: $('.color-button-green'),
 	},
-	robots: {},
-	robotMoving: false,
-	movesList: [],
+	robots: {}, // List of robots by color
+	robotMoving: false, // Animation trigger
+	movesList: [], // Contains the history of robot moves
+	moveModifier: {x:1, y:1}, // Amount the location is multiplied by in case game board is scaled in a way that makes %s inaccurate
 	
 	options: {
 		boards: [
@@ -159,6 +165,10 @@ var Game = {
 		} else {
 			return Game.robots[activeButton.data('color')];
 		}
+	},
+	
+	currentTarget: function() {
+		// Get the currently active target
 	},
 	
 	moveAdd: function(color, location) {
@@ -291,9 +301,24 @@ var Game = {
 	
 	// Global page events
 	onResize: function(e) {
+		console.log("onResize triggered");
+		
 		$('.square').each(function(){
 			$(this).css('height', $(this).width());
 		});
+		
+		// Update move modifier
+		var robot;
+		for (color in Game.robots) {
+			// Get first robot
+			robot = Game.robots[color];
+			break;
+		}
+		
+		if (robot) {
+			Game.moveModifier.x = Game.$board.width() / Game.board[0].length / robot.me.width();
+			Game.moveModifier.y = Game.$board.height() / Game.board.length / (robot.me.height() + Number(robot.me.css('padding-bottom').split('px')[0]));
+		}
 	},
 	
 	// Utilities
@@ -379,21 +404,28 @@ function Robot(options){
 	
 	this.me = this.addMe();
 	
+	Game.onResize(); // Make sure the modifier is up-to-date
+	
 	this.moveMe({x: this.myX, y: this.myY}, false); // false, do not remember this move (doesn't count)
 }
 
 Robot.prototype.addMe = function(options) {
+	// Find a random starting place and remember it
 	startPos = this.randomPosition();
 	this.myX = startPos.x;
 	this.myY = startPos.y;
+	this.movesList.push(startPos);
 	
 	Game.robots[this.color] = this;
 	
 	Game.$board.prepend('<div class="robot '+this.color+'"></div>');
 	
+	Game.board[this.myY][this.myX].push(this);
+	
 	return $('.robot').filter('.'+this.color);
 }
 
+// The player's indication they want to move the robot
 Robot.prototype.move = function(direction) {
 	// Is there a reason I can't move? Say so
 	if (!Game.robotMoving) {
@@ -406,6 +438,7 @@ Robot.prototype.move = function(direction) {
 	}
 }
 
+// Determine whether the robot can be moved in a given direction
 Robot.prototype.moveCheck = function(direction) {
 	// Find my ending location given a direction N, W, E, S
 	// If I can't move in that direction, return false
@@ -419,44 +452,42 @@ Robot.prototype.moveCheck = function(direction) {
 	}
 	
 	if (direction == "N") {
-		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY-1][moveObj.moveX] } catch(e) { console.log('nextSquare broke: '+(moveObj.moveY-1)+' '+moveObj.moveX); return false; } }
-		moveObj.loopFunc = function(){ console.log("loop func called"); moveObj.moveY--; };
-		moveObj.loopStop = function(){ console.log("loop stop called"); return moveObj.moveY > 0 };
+		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY-1][moveObj.moveX] } catch(e) { return false; } }
+		moveObj.loopFunc = function(){ moveObj.moveY--; };
+		moveObj.loopStop = function(){ return moveObj.moveY > 0 };
 		moveObj.nearWall = 0;
 		moveObj.farWall  = 2;
 	} else if (direction == "S") {
-		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY+1][moveObj.moveX] } catch(e) { console.log('nextSquare broke: '+(moveObj.moveY+1)+' '+moveObj.moveX); return false; } }
-		moveObj.loopFunc = function(){ console.log("loop func called"); moveObj.moveY++; };
-		moveObj.loopStop = function(){ console.log("loop stop called"); return moveObj.moveY < Game.board.length-1 };
+		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY+1][moveObj.moveX] } catch(e) { return false; } }
+		moveObj.loopFunc = function(){ moveObj.moveY++; };
+		moveObj.loopStop = function(){ return moveObj.moveY < Game.board.length-1 };
 		moveObj.nearWall = 2;
 		moveObj.farWall  = 0;
 	} else if (direction == "E") {
-		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY][moveObj.moveX+1] } catch(e) { console.log('nextSquare broke: '+(moveObj.moveY)+' '+(moveObj.moveX+1)); return false; } }
-		moveObj.loopFunc = function(){ console.log("loop func called"); moveObj.moveX++; };
-		moveObj.loopStop = function(){ console.log("loop stop called"); return moveObj.moveX < Game.board[0].length-1 };
+		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY][moveObj.moveX+1] } catch(e) { return false; } }
+		moveObj.loopFunc = function(){ moveObj.moveX++; };
+		moveObj.loopStop = function(){ return moveObj.moveX < Game.board[0].length-1 };
 		moveObj.nearWall = 1;
 		moveObj.farWall  = 3;
 	} else if (direction == "W") {
-		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY][moveObj.moveX-1] } catch(e) { console.log('nextSquare broke: '+(moveObj.moveY)+' '+(moveObj.moveX-1)); return false; } }
-		moveObj.loopFunc = function(){ console.log("loop func called"); moveObj.moveX--; };
-		moveObj.loopStop = function(){ console.log("loop stop called"); return moveObj.moveX > 0 };
+		moveObj.nextSquare = function(){ try { return Game.board[moveObj.moveY][moveObj.moveX-1] } catch(e) { return false; } }
+		moveObj.loopFunc = function(){ moveObj.moveX--; };
+		moveObj.loopStop = function(){ return moveObj.moveX > 0 };
 		moveObj.nearWall = 3;
 		moveObj.farWall  = 1;
 	}
 	
 	// Test that we're not moving into the board edge
 	var LOOPKILL = 0;
-	var breakHit = false;
 	whileloop:
-	while (moveObj.loopStop() && !breakHit) {
+	while (moveObj.loopStop() && LOOPKILL < 20) {
 		// If we're on a square that has walls, test to see if one of them is moveObj.nearWall
 		for (i=0; i<moveObj.currentSquare().length; i++) {
 			if (moveObj.currentSquare()[i].type == "Wall") {
-				console.log('currently on a wall space');
+				//console.log('currently on a wall space');
 				if (moveObj.currentSquare()[i].walls[moveObj.nearWall] == 1) {
 					// will hit near wall - go no further
-					console.log('break hit');
-					breakHit = true;
+					//console.log('break hit - near wall');
 					break whileloop;
 				}
 			}
@@ -466,11 +497,10 @@ Robot.prototype.moveCheck = function(direction) {
 			for (i=0; i<moveObj.nextSquare().length; i++) {
 				// If we're moving into a square with walls, test to see if one of them is moveObj.farWall
 				if (moveObj.nextSquare()[i].type == "Wall") {
-					console.log('next spot is a wall space');
+					//console.log('next spot is a wall space');
 					if (moveObj.nextSquare()[i].walls[moveObj.farWall] == 1) {
 						// will hit far wall - go no further
-						console.log('break hit');
-						breakHit = true;
+						//console.log('break hit - far wall');
 						break whileloop;
 					}
 				}
@@ -478,21 +508,15 @@ Robot.prototype.moveCheck = function(direction) {
 				// If we're moving into a square with a robot, stop the loop, we can move no further
 				if (moveObj.nextSquare()[i].type == "Robot") {
 					// will hit robot - go no further
-					console.log('break hit');
-					breakHit = true;
+					//console.log('break hit - robot');
 					break whileloop;
 				}
 			}
 		}
 		
-		if (LOOPKILL > 20) {
-			console.log("loop killed");
-			break;
-		}
-		
-		moveObj.loopFunc();
-		console.log(moveObj.moveX+", "+moveObj.moveY);
 		LOOPKILL++;
+		moveObj.loopFunc();
+		//console.log(moveObj.moveX+", "+moveObj.moveY);
 	}
 	
 	if (moveObj.moveY == this.myY && moveObj.moveX == this.myX) {
@@ -502,18 +526,29 @@ Robot.prototype.moveCheck = function(direction) {
 	}
 }
 
+// Physically move the robot on the board
 Robot.prototype.moveMe = function(location, remember) {
 	remember = remember == undefined ? true : false;
 	// Update my move on the grid
-	Game.board[this.myY][this.myX].robot = null;
+	for (i=0; i<Game.board[this.myY][this.myX].length; i++) {
+		if (Game.board[this.myY][this.myX][i] == this) {
+			// Splice me out
+			Game.board[this.myY][this.myX].splice(i, 1);
+		}
+	}
+	
 	this.myX = location.x;
 	this.myY = location.y;
-	Game.board[this.myY][this.myX].robot = this;
+	
+	Game.board[this.myY][this.myX].push(this);
+	
 	// move me to a [x, y] spot (using css transform)
-	this.me.css('transform',  'translateX('+location.x+'00%) translateY('+location.y+'00%) translateZ(1px) scale(.8)'); // Scale always at the end
+	location.x *= Game.moveModifier.x * 100;
+	location.y *= Game.moveModifier.y * 100;
+	this.me.css('transform',  'translateX('+location.x+'%) translateY('+location.y+'%) translateZ(1px) scale(.8)'); // Scale always at the end
 	// Add move to the move history
-	this.movesList.push(location);
 	if (remember) {
+		this.movesList.push(location);
 		Game.moveAdd(this.color, location);
 	}
 }
@@ -532,6 +567,9 @@ Robot.prototype.randomPosition = function() {
 Robot.prototype.moveBack = function(howMany) {
 	howMany = howMany == undefined ? 1 : howMany;
 	// Step back to previous position
+	console.log("moving back "+this.color);
+	console.log(this.movesList);
 	this.movesList.pop();
+	console.log(this.movesList);
 	this.moveMe(this.movesList[this.movesList.length-1], false);
 }
